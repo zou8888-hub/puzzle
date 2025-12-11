@@ -1204,16 +1204,15 @@
                 // 阻止默认的触摸行为
                 e.preventDefault();
                 
+                // 确保正在拖拽状态
+                if (!this.isDragging || !this.draggedPiece) return;
+                
                 // 转换为鼠标事件格式
                 const touch = e.touches[0];
-                // 使用当前正在拖拽的碎片作为目标，或者使用事件目标的最近祖先
-                const target = this.draggedPiece || e.target.closest('.puzzle-piece');
-                if (!target) return;
-                
                 const mouseEvent = new MouseEvent('mousemove', {
                     clientX: touch.clientX,
                     clientY: touch.clientY,
-                    target: target,
+                    target: this.draggedPiece,
                     bubbles: true,
                     cancelable: true
                 });
@@ -1225,6 +1224,9 @@
             handleTouchEnd(e) {
                 // 阻止默认的触摸行为
                 e.preventDefault();
+                
+                // 确保正在拖拽状态
+                if (!this.isDragging || !this.draggedPiece) return;
                 
                 // 获取触摸结束的位置
                 const touch = e.changedTouches[0];
