@@ -412,9 +412,9 @@
 <body>
     <div class="game-container">
         <div class="header">
-            <h1>找自己的茬</h1>
+            <h1 id="game-title">找自己的茬</h1>
             <div class="timer">
-                你用时间【<span id="time-display">00:00</span>】
+                <span id="timer-text">你用时间【</span><span id="time-display">00:00</span><span>】</span>
             </div>
         </div>
         
@@ -423,14 +423,14 @@
                 <div class="image-container" id="original-container">
                     <img id="original-image" src="" alt="原图">
                 </div>
-                <div class="frame-label">原图</div>
+                <div class="frame-label" id="original-label">原图</div>
             </div>
             
             <div class="frame">
                 <div class="image-container" id="puzzle-image-container">
                     <div id="puzzle-container"></div>
                 </div>
-                <div class="frame-label">拼图</div>
+                <div class="frame-label" id="puzzle-label">拼图</div>
             </div>
         </div>
         
@@ -443,7 +443,7 @@
     </div>
     
     <div class="congratulations" id="congratulations">
-        <div class="congratulations-text">恭喜你完成拼图！</div>
+        <div class="congratulations-text" id="congratulations-text">恭喜你完成拼图！</div>
         <div class="time-result" id="final-time"></div>
         <div class="flowers" id="flowers"></div>
         <div class="fireworks" id="fireworks"></div>
@@ -454,7 +454,7 @@
     <!-- 难度选择模态框 -->
     <div class="difficulty-modal" id="difficulty-modal">
         <div class="difficulty-content">
-            <h2>选择难度</h2>
+            <h2 id="difficulty-title">选择难度</h2>
             <div class="difficulty-options">
                 <button class="difficulty-btn" data-difficulty="easy">简单 (6片)</button>
                 <button class="difficulty-btn" data-difficulty="medium">适中 (12片)</button>
@@ -464,6 +464,60 @@
     </div>
     
     <script>
+        // 多语言翻译对象
+        const translations = {
+            zh: {
+                title: "找自己的茬",
+                timer: "你用时间【%s】",
+                originalImage: "原图",
+                puzzleImage: "拼图",
+                uploadImage: "上传图片",
+                startTimer: "开始计时",
+                restartGame: "重新开始",
+                congratulations: "恭喜你完成拼图！",
+                finalTime: "恭喜你用时 %s 过关了",
+                pleaseStartTimer: "请先点击开始计时",
+                chooseDifficulty: "选择难度",
+                easyDifficulty: "简单 (6片)",
+                mediumDifficulty: "适中 (12片)",
+                hardDifficulty: "很难 (24片)",
+                continueChallenge: "可以继续挑战其他图片或重新开始"
+            },
+            en: {
+                title: "Puzzle Game",
+                timer: "Time: %s",
+                originalImage: "Original",
+                puzzleImage: "Puzzle",
+                uploadImage: "Upload Image",
+                startTimer: "Start Timer",
+                restartGame: "Restart",
+                congratulations: "Congratulations! You completed the puzzle!",
+                finalTime: "Congratulations! You completed the puzzle in %s",
+                pleaseStartTimer: "Please click Start Timer first",
+                chooseDifficulty: "Choose Difficulty",
+                easyDifficulty: "Easy (6 pieces)",
+                mediumDifficulty: "Medium (12 pieces)",
+                hardDifficulty: "Hard (24 pieces)",
+                continueChallenge: "You can continue to challenge other images or restart"
+            }
+        };
+
+        // 获取设备默认语言
+        const getDefaultLanguage = () => {
+            const language = navigator.language || navigator.userLanguage;
+            const langCode = language.split('-')[0].toLowerCase();
+            return translations[langCode] ? langCode : 'en'; // 默认使用英文
+        };
+
+        // 获取当前语言
+        const currentLanguage = getDefaultLanguage();
+
+        // 翻译函数
+        const translate = (key, ...args) => {
+            const text = translations[currentLanguage][key] || translations['en'][key] || key;
+            return text.replace(/%s/g, (match, index) => args[index] || '');
+        };
+
         class PuzzleGame {
             constructor() {
                 this.originalImage = document.getElementById('original-image');
@@ -545,6 +599,47 @@
                         this.fileInput.click();
                     }
                 });
+                
+                // 添加窗口大小变化事件监听器
+                window.addEventListener('resize', () => {
+                    // 只有在已经上传了图片的情况下才重新计算尺寸
+                    if (this.tempImage) {
+                        this.processImage(this.tempImage);
+                    } else if (this.scaledImageData) {
+                        // 如果没有临时图片，但已经有缩放后的图片数据，重新创建拼图
+                        this.createPuzzle();
+                    }
+                });
+                
+                // 翻译界面文字
+                this.translateUI();
+            }
+            
+            // 翻译界面文字
+            translateUI() {
+                // 更新标题
+                document.getElementById('game-title').textContent = translate('title');
+                
+                // 更新计时器文字
+                document.getElementById('timer-text').textContent = translate('timer', '%s').replace('%s', '');
+                
+                // 更新图片标签
+                document.getElementById('original-label').textContent = translate('originalImage');
+                document.getElementById('puzzle-label').textContent = translate('puzzleImage');
+                
+                // 更新按钮文字
+                this.uploadImage.textContent = translate('uploadImage');
+                this.startButton.textContent = translate('startTimer');
+                this.restartButton.textContent = translate('restartGame');
+                
+                // 更新难度选择模态框
+                document.getElementById('difficulty-title').textContent = translate('chooseDifficulty');
+                document.querySelector('.difficulty-btn[data-difficulty="easy"]').textContent = translate('easyDifficulty');
+                document.querySelector('.difficulty-btn[data-difficulty="medium"]').textContent = translate('mediumDifficulty');
+                document.querySelector('.difficulty-btn[data-difficulty="hard"]').textContent = translate('hardDifficulty');
+                
+                // 更新恭喜界面文字
+                document.getElementById('congratulations-text').textContent = translate('congratulations');
             }
             
             handleImageUpload(e) {
@@ -597,16 +692,18 @@
                 const windowWidth = window.innerWidth;
                 const windowHeight = window.innerHeight;
                 
+                // 检查是否为移动设备
+                const isMobile = windowWidth <= 768;
                 let containerWidth, containerHeight;
                 
                 // 计算可用空间（减去边距和按钮高度）
-                const buttonHeight = 100; // 按钮区域高度估计
-                const margin = 40; // 整体边距
+                const buttonHeight = isMobile ? 80 : 100; // 移动设备减小按钮区域高度
+                const margin = isMobile ? 20 : 40; // 移动设备减小边距
                 
                 if (isHorizontal) {
                     // 横图：上下排列
                     // 宽度：屏幕宽度减去边距
-                    containerWidth = Math.min(windowWidth - margin * 2, 800);
+                    containerWidth = Math.min(windowWidth - margin * 2, isMobile ? 320 : 800);
                     // 高度：根据宽高比计算
                     containerHeight = containerWidth / aspectRatio;
                     
@@ -623,7 +720,7 @@
                 } else {
                     // 竖图：左右排列
                     // 高度：屏幕高度减去按钮和边距
-                    containerHeight = Math.min(windowHeight - buttonHeight - margin * 2, 800);
+                    containerHeight = Math.min(windowHeight - buttonHeight - margin * 2, isMobile ? 320 : 800);
                     // 宽度：根据宽高比计算
                     containerWidth = containerHeight * aspectRatio;
                     
@@ -635,9 +732,19 @@
                         containerHeight = containerWidth / aspectRatio;
                     }
                     
-                    this.imageFrames.classList.remove('vertical');
-                    this.imageFrames.classList.add('horizontal');
+                    // 对于移动设备，竖图也使用上下排列
+                    if (isMobile) {
+                        this.imageFrames.classList.add('vertical');
+                        this.imageFrames.classList.remove('horizontal');
+                    } else {
+                        this.imageFrames.classList.remove('vertical');
+                        this.imageFrames.classList.add('horizontal');
+                    }
                 }
+                
+                // 确保容器尺寸不小于最小值
+                containerWidth = Math.max(containerWidth, 200);
+                containerHeight = Math.max(containerHeight, 200);
                 
                 // 2. 设置容器尺寸（包含内边距）
                 const padding = 30; // 2*15px padding
@@ -674,7 +781,7 @@
                 
                 this.startButton.disabled = false;
                 this.restartButton.disabled = false;
-                this.showMessage('请点击开始计时', true);
+                this.showMessage(translate('pleaseStartTimer'), true);
             }
             
             createPuzzle() {
@@ -750,10 +857,16 @@
                             piece.dataset.row = i;
                             piece.dataset.col = j;
                             
+                            // 添加鼠标事件监听器
                             piece.addEventListener('mousedown', (e) => this.handleMouseDown(e));
                             piece.addEventListener('mouseup', (e) => this.handleMouseUp(e));
                             piece.addEventListener('mousemove', (e) => this.handleMouseMove(e));
                             piece.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
+                            
+                            // 添加触屏事件监听器
+                            piece.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                            piece.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+                            piece.addEventListener('touchend', (e) => this.handleTouchEnd(e));
                             
                             this.pieces.push(piece);
                             this.correctOrder.push(i * cols + j);
@@ -952,11 +1065,18 @@
                 const mouseX = e.clientX;
                 const mouseY = e.clientY;
                 
+                this.handleDragEnd(mouseX, mouseY);
+            }
+            
+            // 处理拖拽结束的通用逻辑
+            handleDragEnd(x, y) {
+                if (!this.isDragging || !this.draggedPiece) return;
+                
                 // 临时隐藏拖拽的碎片，以便准确检测鼠标下的元素
                 this.draggedPiece.style.visibility = 'hidden';
                 
                 // 提高目标检测精度：使用elementFromPoint直接获取鼠标下的元素
-                const elementUnderMouse = document.elementFromPoint(mouseX, mouseY);
+                const elementUnderMouse = document.elementFromPoint(x, y);
                 let targetPiece = null;
                 
                 // 如果鼠标下有元素，查找其是否为拼图碎片或其子元素
@@ -1049,6 +1169,50 @@
                 this.draggedPiece = null;
             }
             
+            // 触屏事件处理函数
+            handleTouchStart(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                // 转换为鼠标事件格式
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                
+                // 调用鼠标按下处理函数
+                this.handleMouseDown(mouseEvent);
+            }
+            
+            handleTouchMove(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                // 转换为鼠标事件格式
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                
+                // 调用鼠标移动处理函数
+                this.handleMouseMove(mouseEvent);
+            }
+            
+            handleTouchEnd(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                // 获取触摸结束的位置
+                const touch = e.changedTouches[0];
+                const x = touch.clientX;
+                const y = touch.clientY;
+                
+                // 调用通用的拖拽结束处理函数
+                this.handleDragEnd(x, y);
+            }
+            
             swapPiecesByDataIndex(draggedDataIndex, targetDataIndex, draggedIndexInOrder, targetIndexInOrder) {
                 // 找到对应的DOM元素
                 const draggedPiece = this.pieces.find(piece => parseInt(piece.dataset.index) === draggedDataIndex);
@@ -1123,7 +1287,7 @@
                 }
                 
                 // 更新文本内容为"恭喜你用时多少过关了"
-                this.finalTime.textContent = `恭喜你用时 ${this.timeDisplay.textContent} 过关了`;
+                this.finalTime.textContent = translate('finalTime', this.timeDisplay.textContent);
                 this.congratulations.classList.add('show');
                 
                 // 创建鲜花和烟花效果
@@ -1140,7 +1304,7 @@
                     // 恢复游戏状态，可以继续游玩
                     this.isGameCompleted = false;
                     // 显示提示信息
-                    this.showMessage('可以继续挑战其他图片或重新开始', true);
+                    this.showMessage(translate('continueChallenge'), true);
                 }, 2000);
             }
             
