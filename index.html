@@ -422,7 +422,7 @@
         <div class="header">
             <h1 id="game-title">找自己的茬</h1>
             <div class="timer">
-                <span id="timer-text">你用时间【</span><span id="time-display">00:00</span>
+                <span id="timer-text">你用时间【</span><span id="time-display">00:00</span><span>】</span>
             </div>
         </div>
         
@@ -1229,17 +1229,8 @@
                 // 获取触摸结束的位置
                 const touch = e.changedTouches[0];
                 
-                // 转换为鼠标事件格式，确保与鼠标事件使用相同的逻辑
-                const mouseEvent = new MouseEvent('mouseup', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    target: this.draggedPiece || e.target.closest('.puzzle-piece'),
-                    bubbles: true,
-                    cancelable: true
-                });
-                
-                // 调用鼠标释放处理函数
-                this.handleMouseUp(mouseEvent);
+                // 直接调用拖拽结束处理函数，传入触屏坐标
+                this.handleDragEnd(touch.clientX, touch.clientY);
             }
             
             swapPiecesByDataIndex(draggedDataIndex, targetDataIndex, draggedIndexInOrder, targetIndexInOrder) {
