@@ -41,7 +41,8 @@
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 5vw;
+            max-font-size: 2.5rem;
             text-align: center;
             color: #00d4ff;
             text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
@@ -49,12 +50,13 @@
         }
 
         .timer {
-            font-size: 1.8rem;
+            font-size: 3vw;
+            max-font-size: 1.8rem;
             color: #ff6b6b;
             background: rgba(255, 255, 255, 0.1);
-            padding: 10px 20px;
-            border-radius: 25px;
-            border: 2px solid #00d4ff;
+            padding: 1.2vw 2.5vw;
+            border-radius: 4vw;
+            border: 0.25vw solid #00d4ff;
             box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
         }
 
@@ -79,11 +81,13 @@
         }
 
         .image-container {
-            width: 320px;
-            height: 320px;
+            width: 40vw;
+            height: 40vw;
+            max-width: 320px;
+            max-height: 320px;
             background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
-            border-radius: 15px;
-            padding: 15px;
+            border-radius: 2vw;
+            padding: 1.5vw;
             box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
             position: relative;
             overflow: hidden;
@@ -93,12 +97,12 @@
         .image-container::before {
             content: '';
             position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
+            top: -0.2vw;
+            left: -0.2vw;
+            right: -0.2vw;
+            bottom: -0.2vw;
             background: linear-gradient(45deg, #00d4ff, #ff6b6b, #4ecdc4, #45b7d1);
-            border-radius: 15px;
+            border-radius: 2vw;
             z-index: -1;
             animation: borderGlow 3s ease-in-out infinite alternate;
         }
@@ -144,7 +148,8 @@
         }
 
         .frame-label {
-            font-size: 1rem;
+            font-size: 2vw;
+            max-font-size: 1rem;
             color: #b8c6db;
             text-align: center;
             font-weight: 500;
@@ -160,16 +165,17 @@
 
         /* 通用按钮样式，应用于所有三个按钮 */
         #upload-image, button {
-            padding: 12px 24px;
-            font-size: 1rem;
+            padding: 2vw 4vw;
+            font-size: 2vw;
+            max-font-size: 1rem;
             font-weight: 600;
             color: #ffffff;
             border: none;
-            border-radius: 25px;
+            border-radius: 4vw;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            min-width: 120px;
+            min-width: 15vw;
             text-align: center;
             display: inline-block;
             line-height: 1.5;
@@ -362,8 +368,9 @@
         
         .difficulty-content h2 {
             color: #00d4ff;
-            font-size: 2rem;
-            margin-bottom: 30px;
+            font-size: 4vw;
+            max-font-size: 2rem;
+            margin-bottom: 3vw;
             text-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
         }
         
@@ -374,16 +381,17 @@
         }
         
         .difficulty-btn {
-            padding: 15px 30px;
-            font-size: 1.2rem;
+            padding: 2vw 4vw;
+            font-size: 2.5vw;
+            max-font-size: 1.2rem;
             font-weight: 600;
             color: #ffffff;
             border: none;
-            border-radius: 25px;
+            border-radius: 4vw;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            min-width: 200px;
+            min-width: 25vw;
         }
         
         .difficulty-btn[data-difficulty="easy"] {
@@ -414,7 +422,7 @@
         <div class="header">
             <h1 id="game-title">找自己的茬</h1>
             <div class="timer">
-                <span id="timer-text">你用时间【</span><span id="time-display">00:00</span><span>】</span>
+                <span id="timer-text">你用时间【</span><span id="time-display">00:00</span>
             </div>
         </div>
         
@@ -1220,11 +1228,18 @@
                 
                 // 获取触摸结束的位置
                 const touch = e.changedTouches[0];
-                const x = touch.clientX;
-                const y = touch.clientY;
                 
-                // 调用通用的拖拽结束处理函数
-                this.handleDragEnd(x, y);
+                // 转换为鼠标事件格式，确保与鼠标事件使用相同的逻辑
+                const mouseEvent = new MouseEvent('mouseup', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    target: this.draggedPiece || e.target.closest('.puzzle-piece'),
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                // 调用鼠标释放处理函数
+                this.handleMouseUp(mouseEvent);
             }
             
             swapPiecesByDataIndex(draggedDataIndex, targetDataIndex, draggedIndexInOrder, targetIndexInOrder) {
