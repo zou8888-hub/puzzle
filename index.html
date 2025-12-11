@@ -1174,11 +1174,18 @@
                 // 阻止默认的触摸行为
                 e.preventDefault();
                 
+                // 获取正确的目标元素（拼图碎片）
+                const target = e.target.closest('.puzzle-piece');
+                if (!target) return;
+                
                 // 转换为鼠标事件格式
                 const touch = e.touches[0];
                 const mouseEvent = new MouseEvent('mousedown', {
                     clientX: touch.clientX,
-                    clientY: touch.clientY
+                    clientY: touch.clientY,
+                    target: target,
+                    bubbles: true,
+                    cancelable: true
                 });
                 
                 // 调用鼠标按下处理函数
@@ -1191,9 +1198,16 @@
                 
                 // 转换为鼠标事件格式
                 const touch = e.touches[0];
+                // 使用当前正在拖拽的碎片作为目标，或者使用事件目标的最近祖先
+                const target = this.draggedPiece || e.target.closest('.puzzle-piece');
+                if (!target) return;
+                
                 const mouseEvent = new MouseEvent('mousemove', {
                     clientX: touch.clientX,
-                    clientY: touch.clientY
+                    clientY: touch.clientY,
+                    target: target,
+                    bubbles: true,
+                    cancelable: true
                 });
                 
                 // 调用鼠标移动处理函数
