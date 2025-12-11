@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>找自己的茬 - 拼图游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 5vw;
+            max-font-size: 2.5rem;
+            text-align: center;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            margin: 0;
+        }
+
+        .timer {
+            font-size: 3vw;
+            max-font-size: 1.8rem;
+            color: #ff6b6b;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.2vw 2.5vw;
+            border-radius: 4vw;
+            border: 0.25vw solid #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .image-frames {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .image-frames.vertical {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .frame {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .image-container {
+            width: 40vw;
+            height: 40vw;
+            max-width: 320px;
+            max-height: 320px;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border-radius: 2vw;
+            padding: 1.5vw;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: width 0.5s ease, height 0.5s ease;
+        }
+
+        .image-container::before {
+            content: '';
+            position: absolute;
+            top: -0.2vw;
+            left: -0.2vw;
+            right: -0.2vw;
+            bottom: -0.2vw;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b, #4ecdc4, #45b7d1);
+            border-radius: 2vw;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes borderGlow {
+            0% { filter: blur(5px); }
+            100% { filter: blur(15px); }
+        }
+
+        #original-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        #puzzle-container {
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .puzzle-piece {
+            background-size: cover;
+            cursor: grab;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 4px;
+            position: absolute;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .puzzle-piece:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .puzzle-piece:active {
+            cursor: grabbing;
+        }
+
+        .frame-label {
+            font-size: 2vw;
+            max-font-size: 1rem;
+            color: #b8c6db;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 通用按钮样式，应用于所有三个按钮 */
+        #upload-image, button {
+            padding: 2vw 4vw;
+            font-size: 2vw;
+            max-font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            border: none;
+            border-radius: 4vw;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 15vw;
+            text-align: center;
+            display: inline-block;
+            line-height: 1.5;
+        }
+
+        #upload-image:hover, button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #upload-image:active, button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 按钮颜色差异化 */
+        #upload-image {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        #start-timer {
+            background: linear-gradient(135deg, #4ecdc4 0%, #45b7d1 100%);
+        }
+
+        #restart-game {
+            background: linear-gradient(135deg, #96ceb4 0%, #ffeaa7 100%);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .congratulations {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .congratulations.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .congratulations-text {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .time-result {
+            font-size: 1.5rem;
+            color: #ffffff;
+            margin-bottom: 30px;
+        }
+
+        .flowers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .flower {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ff6b6b 0%, #ee5a52 100%);
+            border-radius: 50%;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        /* 烟花效果样式 */
+        .fireworks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .firework {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #fff;
+            border-radius: 50%;
+            animation: explode 1.5s ease-out forwards;
+        }
+        
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.5);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) translateY(-100px);
+            }
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #ffffff;
+            padding: 20px 40px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease;
+            z-index: 1001;
+        }
+
+        .message.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* 难度选择模态框样式 */
+        .difficulty-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .difficulty-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .difficulty-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
+            text-align: center;
+            border: 2px solid #00d4ff;
+        }
+        
+        .difficulty-content h2 {
+            color: #00d4ff;
+            font-size: 4vw;
+            max-font-size: 2rem;
+            margin-bottom: 3vw;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+        
+        .difficulty-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .difficulty-btn {
+            padding: 2vw 4vw;
+            font-size: 2.5vw;
+            max-font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+            border: none;
+            border-radius: 4vw;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 25vw;
+        }
+        
+        .difficulty-btn[data-difficulty="easy"] {
+            background: linear-gradient(135deg, #4ecdc4 0%, #45b7d1 100%);
+        }
+        
+        .difficulty-btn[data-difficulty="medium"] {
+            background: linear-gradient(135deg, #96ceb4 0%, #ffeaa7 100%);
+            color: #333;
+        }
+        
+        .difficulty-btn[data-difficulty="hard"] {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+        
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .difficulty-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 id="game-title">找自己的茬</h1>
+            <div class="timer">
+                <span id="timer-text">你用时间</span>【<span id="time-display">00:00</span>】
+            </div>
+        </div>
+        
+        <div class="image-frames" id="image-frames">
+            <div class="frame">
+                <div class="image-container" id="original-container">
+                    <img id="original-image" src="" alt="原图">
+                </div>
+                <div class="frame-label" id="original-label">原图</div>
+            </div>
+            
+            <div class="frame">
+                <div class="image-container" id="puzzle-image-container">
+                    <div id="puzzle-container"></div>
+                </div>
+                <div class="frame-label" id="puzzle-label">拼图</div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button id="upload-image">上传图片</button>
+            <input type="file" id="file-input" accept="image/*">
+            <button id="start-timer" disabled>开始计时</button>
+            <button id="restart-game" disabled>重新开始</button>
+        </div>
+    </div>
+    
+    <div class="congratulations" id="congratulations">
+        <div class="congratulations-text" id="congratulations-text">恭喜你完成拼图！</div>
+        <div class="time-result" id="final-time"></div>
+        <div class="flowers" id="flowers"></div>
+        <div class="fireworks" id="fireworks"></div>
+    </div>
+    
+    <div class="message" id="message"></div>
+    
+    <!-- 难度选择模态框 -->
+    <div class="difficulty-modal" id="difficulty-modal">
+        <div class="difficulty-content">
+            <h2 id="difficulty-title">选择难度</h2>
+            <div class="difficulty-options">
+                <button class="difficulty-btn" data-difficulty="easy">简单 (6片)</button>
+                <button class="difficulty-btn" data-difficulty="medium">适中 (12片)</button>
+                <button class="difficulty-btn" data-difficulty="hard">很难 (24片)</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 多语言翻译对象
+        const translations = {
+            zh: {
+                title: "找自己的茬",
+                timer: "你用时间",
+                originalImage: "原图",
+                puzzleImage: "拼图",
+                uploadImage: "上传图片",
+                startTimer: "开始计时",
+                restartGame: "重新开始",
+                congratulations: "恭喜你完成拼图！",
+                finalTime: "恭喜你用时 %s 过关了",
+                pleaseStartTimer: "请先点击开始计时",
+                chooseDifficulty: "选择难度",
+                easyDifficulty: "简单 (6片)",
+                mediumDifficulty: "适中 (12片)",
+                hardDifficulty: "很难 (24片)",
+                continueChallenge: "可以继续挑战其他图片或重新开始"
+            },
+            en: {
+                title: "Puzzle Game",
+                timer: "Time: %s",
+                originalImage: "Original",
+                puzzleImage: "Puzzle",
+                uploadImage: "Upload Image",
+                startTimer: "Start Timer",
+                restartGame: "Restart",
+                congratulations: "Congratulations! You completed the puzzle!",
+                finalTime: "Congratulations! You completed the puzzle in %s",
+                pleaseStartTimer: "Please click Start Timer first",
+                chooseDifficulty: "Choose Difficulty",
+                easyDifficulty: "Easy (6 pieces)",
+                mediumDifficulty: "Medium (12 pieces)",
+                hardDifficulty: "Hard (24 pieces)",
+                continueChallenge: "You can continue to challenge other images or restart"
+            }
+        };
+
+        // 获取设备默认语言
+        const getDefaultLanguage = () => {
+            const language = navigator.language || navigator.userLanguage;
+            const langCode = language.split('-')[0].toLowerCase();
+            return translations[langCode] ? langCode : 'en'; // 默认使用英文
+        };
+
+        // 获取当前语言
+        const currentLanguage = getDefaultLanguage();
+
+        // 翻译函数
+        const translate = (key, ...args) => {
+            const text = translations[currentLanguage][key] || translations['en'][key] || key;
+            return text.replace(/%s/g, (match, index) => args[index] || '');
+        };
+
+        class PuzzleGame {
+            constructor() {
+                this.originalImage = document.getElementById('original-image');
+                this.originalContainer = document.getElementById('original-container');
+                this.puzzleContainer = document.getElementById('puzzle-container');
+                this.puzzleImageContainer = document.getElementById('puzzle-image-container');
+                this.imageFrames = document.getElementById('image-frames');
+                this.fileInput = document.getElementById('file-input');
+                this.startButton = document.getElementById('start-timer');
+                this.restartButton = document.getElementById('restart-game');
+                this.timeDisplay = document.getElementById('time-display');
+                this.congratulations = document.getElementById('congratulations');
+                this.finalTime = document.getElementById('final-time');
+                this.flowers = document.getElementById('flowers');
+                this.fireworks = document.getElementById('fireworks');
+                this.message = document.getElementById('message');
+                this.uploadImage = document.getElementById('upload-image');
+                this.difficultyModal = document.getElementById('difficulty-modal');
+                this.difficultyBtns = document.querySelectorAll('.difficulty-btn');
+                
+                // 难度相关属性
+                this.currentDifficulty = 'medium'; // 默认难度
+                this.difficultyConfig = {
+                    easy: { rows: 3, cols: 2, pieces: 6 },
+                    medium: { rows: 4, cols: 3, pieces: 12 },
+                    hard: { rows: 6, cols: 4, pieces: 24 }
+                };
+                
+                this.isGameStarted = false;
+                this.isGameCompleted = false;
+                this.timer = null;
+                this.seconds = 0;
+                this.pieces = [];
+                this.correctOrder = [];
+                this.currentOrder = [];
+                this.scaledImageData = null;
+                this.scaledWidth = 0;
+                this.scaledHeight = 0;
+                this.tempImage = null; // 临时存储用户上传的图片
+                
+                // 拖拽状态变量
+                this.isDragging = false;
+                this.draggedPiece = null;
+                this.dragOffset = { x: 0, y: 0 };
+                this.originalPosition = null;
+                this.pieceWidth = 0;
+                this.pieceHeight = 0;
+                
+                this.init();
+            }
+            
+            init() {
+                // 确保元素都能正确获取
+                console.log('Initializing game...');
+                console.log('Upload button:', this.uploadImage);
+                console.log('Start button:', this.startButton);
+                console.log('Restart button:', this.restartButton);
+                console.log('File input:', this.fileInput);
+                
+                this.fileInput.addEventListener('change', (e) => this.handleImageUpload(e));
+                this.startButton.addEventListener('click', (e) => this.startGame(e));
+                this.restartButton.addEventListener('click', (e) => this.restartGame(e));
+                
+                // 添加难度选择事件监听器
+                this.difficultyBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => this.handleDifficultySelect(e));
+                });
+                
+                // 上传按钮的特殊处理 - 确保即使没有音频也能工作
+                this.uploadImage.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Upload button clicked');
+                    try {
+                        this.fileInput.click();
+                        this.playSound('click');
+                    } catch (error) {
+                        console.error('Error in upload button:', error);
+                        // 即使出现错误，也要确保文件输入能被触发
+                        this.fileInput.click();
+                    }
+                });
+                
+                // 添加窗口大小变化事件监听器
+                window.addEventListener('resize', () => {
+                    // 只有在已经上传了图片的情况下才重新计算尺寸
+                    if (this.tempImage) {
+                        this.processImage(this.tempImage);
+                    } else if (this.scaledImageData) {
+                        // 如果没有临时图片，但已经有缩放后的图片数据，重新创建拼图
+                        this.createPuzzle();
+                    }
+                });
+                
+                // 翻译界面文字
+                this.translateUI();
+            }
+            
+            // 翻译界面文字
+            translateUI() {
+                // 更新标题
+                document.getElementById('game-title').textContent = translate('title');
+                
+                // 更新计时器文字
+                document.getElementById('timer-text').textContent = translate('timer', '%s').replace('%s', '');
+                
+                // 更新图片标签
+                document.getElementById('original-label').textContent = translate('originalImage');
+                document.getElementById('puzzle-label').textContent = translate('puzzleImage');
+                
+                // 更新按钮文字
+                this.uploadImage.textContent = translate('uploadImage');
+                this.startButton.textContent = translate('startTimer');
+                this.restartButton.textContent = translate('restartGame');
+                
+                // 更新难度选择模态框
+                document.getElementById('difficulty-title').textContent = translate('chooseDifficulty');
+                document.querySelector('.difficulty-btn[data-difficulty="easy"]').textContent = translate('easyDifficulty');
+                document.querySelector('.difficulty-btn[data-difficulty="medium"]').textContent = translate('mediumDifficulty');
+                document.querySelector('.difficulty-btn[data-difficulty="hard"]').textContent = translate('hardDifficulty');
+                
+                // 更新恭喜界面文字
+                document.getElementById('congratulations-text').textContent = translate('congratulations');
+            }
+            
+            handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // 存储图片数据，然后显示难度选择
+                        this.tempImage = img;
+                        this.showDifficultyModal();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // 显示难度选择模态框
+            showDifficultyModal() {
+                this.difficultyModal.classList.add('show');
+            }
+            
+            // 隐藏难度选择模态框
+            hideDifficultyModal() {
+                this.difficultyModal.classList.remove('show');
+            }
+            
+            // 处理难度选择
+            handleDifficultySelect(e) {
+                const difficulty = e.target.dataset.difficulty;
+                this.currentDifficulty = difficulty;
+                this.hideDifficultyModal();
+                
+                // 如果是从上传图片过来的，处理图片
+                if (this.tempImage) {
+                    this.processImage(this.tempImage);
+                    this.tempImage = null;
+                } else {
+                    // 如果是从重新开始过来的，重新创建拼图
+                    this.createPuzzle();
+                }
+            }
+            
+            processImage(img) {
+                // 1. 确定图片方向和计算合适的容器尺寸
+                const aspectRatio = img.width / img.height;
+                const isHorizontal = aspectRatio > 1;
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                // 检查是否为移动设备
+                const isMobile = windowWidth <= 768;
+                let containerWidth, containerHeight;
+                
+                // 计算可用空间（减去边距和按钮高度）
+                const buttonHeight = isMobile ? 80 : 100; // 移动设备减小按钮区域高度
+                const margin = isMobile ? 20 : 40; // 移动设备减小边距
+                
+                if (isHorizontal) {
+                    // 横图：上下排列
+                    // 宽度：屏幕宽度减去边距
+                    containerWidth = Math.min(windowWidth - margin * 2, isMobile ? 320 : 800);
+                    // 高度：根据宽高比计算
+                    containerHeight = containerWidth / aspectRatio;
+                    
+                    // 确保两个容器加起来不超过屏幕高度减去按钮和边距
+                    const availableHeight = windowHeight - buttonHeight - margin * 2;
+                    if (containerHeight * 2 > availableHeight) {
+                        // 缩小容器高度以适应可用空间
+                        containerHeight = availableHeight / 2;
+                        containerWidth = containerHeight * aspectRatio;
+                    }
+                    
+                    this.imageFrames.classList.add('vertical');
+                    this.imageFrames.classList.remove('horizontal');
+                } else {
+                    // 竖图：左右排列
+                    // 高度：屏幕高度减去按钮和边距
+                    containerHeight = Math.min(windowHeight - buttonHeight - margin * 2, isMobile ? 320 : 800);
+                    // 宽度：根据宽高比计算
+                    containerWidth = containerHeight * aspectRatio;
+                    
+                    // 确保两个容器加起来不超过屏幕宽度减去边距
+                    const availableWidth = windowWidth - margin * 2;
+                    if (containerWidth * 2 > availableWidth) {
+                        // 缩小容器宽度以适应可用空间
+                        containerWidth = availableWidth / 2;
+                        containerHeight = containerWidth / aspectRatio;
+                    }
+                    
+                    // 对于移动设备，竖图也使用上下排列
+                    if (isMobile) {
+                        this.imageFrames.classList.add('vertical');
+                        this.imageFrames.classList.remove('horizontal');
+                    } else {
+                        this.imageFrames.classList.remove('vertical');
+                        this.imageFrames.classList.add('horizontal');
+                    }
+                }
+                
+                // 确保容器尺寸不小于最小值
+                containerWidth = Math.max(containerWidth, 200);
+                containerHeight = Math.max(containerHeight, 200);
+                
+                // 2. 设置容器尺寸（包含内边距）
+                const padding = 30; // 2*15px padding
+                const containers = [this.originalContainer, this.puzzleImageContainer];
+                containers.forEach(container => {
+                    container.style.width = `${Math.round(containerWidth)}px`;
+                    container.style.height = `${Math.round(containerHeight)}px`;
+                    container.style.minWidth = `${Math.round(containerWidth)}px`;
+                    container.style.minHeight = `${Math.round(containerHeight)}px`;
+                    container.style.maxWidth = `${Math.round(containerWidth)}px`;
+                    container.style.maxHeight = `${Math.round(containerHeight)}px`;
+                });
+                
+                // 3. 计算图片的实际显示尺寸（容器尺寸减去内边距）
+                this.scaledWidth = containerWidth - padding;
+                this.scaledHeight = containerHeight - padding;
+                
+                // 4. 将图片缩放到容器内部尺寸使用Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = this.scaledWidth;
+                canvas.height = this.scaledHeight;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, this.scaledWidth, this.scaledHeight);
+                
+                // 5. 设置原图为缩放后的版本
+                this.scaledImageData = canvas.toDataURL();
+                this.originalImage.src = this.scaledImageData;
+                this.originalImage.width = this.scaledWidth;
+                this.originalImage.height = this.scaledHeight;
+                
+                // 6. 创建拼图碎片
+                this.createPuzzle();
+                
+                this.startButton.disabled = false;
+                this.restartButton.disabled = false;
+                this.showMessage(translate('pleaseStartTimer'), true);
+            }
+            
+            createPuzzle() {
+                this.puzzleContainer.innerHTML = '';
+                this.pieces = [];
+                this.correctOrder = [];
+                this.currentOrder = [];
+                
+                // 根据当前难度获取行列数
+                const rows = this.difficultyConfig[this.currentDifficulty].rows;
+                const cols = this.difficultyConfig[this.currentDifficulty].cols;
+                
+                // 计算每个碎片的精确尺寸
+                this.pieceWidth = this.scaledWidth / cols;
+                this.pieceHeight = this.scaledHeight / rows;
+                
+                // 移除Grid布局相关设置，使用绝对定位
+                this.puzzleContainer.style.gridTemplateColumns = '';
+                this.puzzleContainer.style.gridTemplateRows = '';
+                this.puzzleContainer.style.display = 'block';
+                this.puzzleContainer.style.position = 'relative';
+                this.puzzleContainer.style.width = `${this.scaledWidth}px`;
+                this.puzzleContainer.style.height = `${this.scaledHeight}px`;
+                
+                // 先加载缩放后的完整图像
+                const fullImg = new Image();
+                fullImg.onload = () => {
+                    for (let i = 0; i < rows; i++) {
+                        for (let j = 0; j < cols; j++) {
+                            const piece = document.createElement('div');
+                            piece.className = 'puzzle-piece';
+                            
+                            // 创建一个小画布来绘制碎片对应的部分
+                            const pieceCanvas = document.createElement('canvas');
+                            pieceCanvas.width = Math.round(this.pieceWidth);
+                            pieceCanvas.height = Math.round(this.pieceHeight);
+                            const pieceCtx = pieceCanvas.getContext('2d');
+                            
+                            // 从完整图像中截取对应部分
+                            pieceCtx.drawImage(
+                                fullImg,
+                                j * this.pieceWidth,
+                                i * this.pieceHeight,
+                                this.pieceWidth,
+                                this.pieceHeight,
+                                0,
+                                0,
+                                pieceCanvas.width,
+                                pieceCanvas.height
+                            );
+                            
+                            // 直接将Canvas元素添加到碎片中作为内容
+                            const canvasClone = document.createElement('canvas');
+                            canvasClone.width = pieceCanvas.width;
+                            canvasClone.height = pieceCanvas.height;
+                            canvasClone.getContext('2d').drawImage(pieceCanvas, 0, 0);
+                            canvasClone.style.width = '100%';
+                            canvasClone.style.height = '100%';
+                            canvasClone.style.display = 'block';
+                            piece.appendChild(canvasClone);
+                            
+                            // 设置精确的固定尺寸
+                            piece.style.width = `${Math.round(this.pieceWidth)}px`;
+                            piece.style.height = `${Math.round(this.pieceHeight)}px`;
+                            piece.style.minWidth = `${Math.round(this.pieceWidth)}px`;
+                            piece.style.minHeight = `${Math.round(this.pieceHeight)}px`;
+                            piece.style.maxWidth = `${Math.round(this.pieceWidth)}px`;
+                            piece.style.maxHeight = `${Math.round(this.pieceHeight)}px`;
+                            piece.style.overflow = 'hidden';
+                            piece.style.position = 'absolute';
+                            
+                            piece.dataset.index = i * cols + j;
+                            piece.dataset.row = i;
+                            piece.dataset.col = j;
+                            
+                            // 添加鼠标事件监听器
+                            piece.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                            piece.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                            piece.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                            piece.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
+                            
+                            // 添加触屏事件监听器
+                            piece.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                            piece.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+                            piece.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+                            piece.addEventListener('touchcancel', (e) => this.handleTouchCancel(e));
+                            
+                            this.pieces.push(piece);
+                            this.correctOrder.push(i * cols + j);
+                            this.currentOrder.push(i * cols + j);
+                            
+                            // 将碎片添加到容器
+                            this.puzzleContainer.appendChild(piece);
+                        }
+                    }
+                    
+                    this.shufflePieces();
+                    
+                    // 确保在创建拼图后启用开始计时按钮
+                    this.startButton.disabled = false;
+                    this.restartButton.disabled = false;
+                };
+                fullImg.src = this.scaledImageData;
+            }
+            
+            shufflePieces() {
+                // 创建一个位置数组，包含所有碎片的目标位置和对应的正确索引
+                const positions = [];
+                // 根据当前难度获取行列数
+                const rows = this.difficultyConfig[this.currentDifficulty].rows;
+                const cols = this.difficultyConfig[this.currentDifficulty].cols;
+                
+                // 生成所有可能的位置和对应的正确索引
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const correctIndex = i * cols + j;
+                        positions.push({
+                            left: `${Math.round(j * this.pieceWidth)}px`,
+                            top: `${Math.round(i * this.pieceHeight)}px`,
+                            correctIndex: correctIndex
+                        });
+                    }
+                }
+                
+                // 随机打乱位置数组
+                for (let i = positions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [positions[i], positions[j]] = [positions[j], positions[i]];
+                }
+                
+                // 重新初始化currentOrder数组
+                this.currentOrder = [];
+                
+                // 将每个碎片放置到打乱后的位置，并更新其dataset.index
+                this.pieces.forEach((piece, index) => {
+                    const pos = positions[index];
+                    piece.style.left = pos.left;
+                    piece.style.top = pos.top;
+                    piece.dataset.index = pos.correctIndex;
+                    this.currentOrder.push(pos.correctIndex);
+                });
+            }
+            
+            startGame(e) {
+                console.log('Start button clicked');
+                this.playButtonSound(e);
+                
+                if (this.isGameStarted) return;
+                
+                this.isGameStarted = true;
+                this.isGameCompleted = false;
+                this.seconds = 0;
+                this.updateTimer();
+                this.timer = setInterval(() => {
+                    this.seconds++;
+                    this.updateTimer();
+                }, 1000);
+                
+                this.startButton.disabled = true;
+            }
+            
+            restartGame(e) {
+                console.log('Restart button clicked');
+                this.playButtonSound(e);
+                
+                this.isGameStarted = false;
+                this.isGameCompleted = false;
+                this.seconds = 0;
+                this.updateTimer();
+                
+                if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
+                
+                // 确保开始计时按钮可用
+                this.startButton.disabled = false;
+                this.restartButton.disabled = false;
+                
+                // 显示难度选择模态框
+                this.showDifficultyModal();
+                this.congratulations.classList.remove('show');
+                this.showMessage('请选择难度', true);
+            }
+            
+            updateTimer() {
+                const minutes = Math.floor(this.seconds / 60).toString().padStart(2, '0');
+                const secs = (this.seconds % 60).toString().padStart(2, '0');
+                this.timeDisplay.textContent = `${minutes}:${secs}`;
+            }
+            
+            handleMouseDown(e) {
+                if (!this.isGameStarted || this.isGameCompleted) {
+                    // 如果游戏未开始或已完成，播放提示音并显示消息
+                    if (!this.isGameStarted) {
+                        this.playSound('alert');
+                        this.showMessage('请先点击开始计时', true);
+                    }
+                    return;
+                }
+                
+                this.isDragging = true;
+                // 确保我们拖拽的是碎片容器，而不是内部的Canvas
+                this.draggedPiece = e.target.closest('.puzzle-piece');
+                if (!this.draggedPiece) return;
+                
+                const rect = this.draggedPiece.getBoundingClientRect();
+                const containerRect = this.puzzleContainer.getBoundingClientRect();
+                this.dragOffset.x = e.clientX - rect.left;
+                this.dragOffset.y = e.clientY - rect.top;
+                
+                // 记录初始位置
+                const computedStyle = getComputedStyle(this.draggedPiece);
+                this.originalPosition = {
+                    left: computedStyle.left,
+                    top: computedStyle.top,
+                    position: computedStyle.position
+                };
+                
+                // 确保拖拽时尺寸固定
+                this.draggedPiece.style.zIndex = '100';
+                this.draggedPiece.style.cursor = 'grabbing';
+                this.draggedPiece.style.transition = 'none';
+                this.draggedPiece.style.transform = 'scale(1.05)';
+                this.draggedPiece.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.5)';
+                
+                // 在拖拽开始时明确设置尺寸
+                this.draggedPiece.style.width = `${Math.round(this.pieceWidth)}px`;
+                this.draggedPiece.style.height = `${Math.round(this.pieceHeight)}px`;
+            }
+            
+            handleMouseMove(e) {
+                if (!this.isDragging || !this.draggedPiece) return;
+                
+                const containerRect = this.puzzleContainer.getBoundingClientRect();
+                let x = e.clientX - containerRect.left - this.dragOffset.x;
+                let y = e.clientY - containerRect.top - this.dragOffset.y;
+                
+                // 限制在容器内
+                x = Math.max(0, Math.min(x, containerRect.width - this.pieceWidth));
+                y = Math.max(0, Math.min(y, containerRect.height - this.pieceHeight));
+                
+                // 确保拖拽时使用绝对定位，但保持固定尺寸
+                this.draggedPiece.style.position = 'absolute';
+                this.draggedPiece.style.left = `${x}px`;
+                this.draggedPiece.style.top = `${y}px`;
+                
+                // 再次明确设置尺寸，防止在拖拽过程中发生变化
+                this.draggedPiece.style.width = `${Math.round(this.pieceWidth)}px`;
+                this.draggedPiece.style.height = `${Math.round(this.pieceHeight)}px`;
+                
+                // 清除之前的高亮效果
+                this.pieces.forEach(piece => {
+                    if (piece !== this.draggedPiece) {
+                        piece.style.outline = '';
+                        piece.style.transform = '';
+                    }
+                });
+                
+                // 高亮当前鼠标下的碎片
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+                const elementUnderMouse = document.elementFromPoint(mouseX, mouseY);
+                
+                if (elementUnderMouse) {
+                    let currentElement = elementUnderMouse;
+                    while (currentElement && currentElement !== this.puzzleContainer) {
+                        if (currentElement.classList.contains('puzzle-piece') && currentElement !== this.draggedPiece) {
+                            currentElement.style.outline = '3px solid #ff6b6b';
+                            currentElement.style.transform = 'scale(1.02)';
+                            break;
+                        }
+                        currentElement = currentElement.parentElement;
+                    }
+                }
+            }
+            
+            handleMouseUp(e) {
+                if (!this.isDragging || !this.draggedPiece) return;
+                
+                // 获取鼠标释放的位置
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+                
+                this.handleDragEnd(mouseX, mouseY);
+            }
+            
+            // 处理拖拽结束的通用逻辑
+            handleDragEnd(x, y) {
+                if (!this.isDragging || !this.draggedPiece) return;
+                
+                let targetPiece = null;
+                
+                // 方法1：尝试使用elementFromPoint检测元素
+                let elementUnderPoint = document.elementFromPoint(x, y);
+                
+                // 如果找到了元素，检查是否为拼图碎片或其子元素
+                if (elementUnderPoint) {
+                    let currentElement = elementUnderPoint;
+                    while (currentElement && currentElement !== this.puzzleContainer) {
+                        if (currentElement.classList.contains('puzzle-piece')) {
+                            targetPiece = currentElement;
+                            break;
+                        }
+                        currentElement = currentElement.parentElement;
+                    }
+                }
+                
+                // 方法2：如果方法1失败，尝试临时隐藏拖拽的碎片再检测
+                if (!targetPiece) {
+                    // 临时隐藏拖拽的碎片，以便准确检测鼠标下的元素
+                    this.draggedPiece.style.visibility = 'hidden';
+                    
+                    // 再次尝试检测元素
+                    elementUnderPoint = document.elementFromPoint(x, y);
+                    
+                    if (elementUnderPoint) {
+                        let currentElement = elementUnderPoint;
+                        while (currentElement && currentElement !== this.puzzleContainer) {
+                            if (currentElement.classList.contains('puzzle-piece')) {
+                                targetPiece = currentElement;
+                                break;
+                            }
+                            currentElement = currentElement.parentElement;
+                        }
+                    }
+                    
+                    // 恢复拖拽碎片的可见性
+                    this.draggedPiece.style.visibility = 'visible';
+                }
+                
+                // 方法3：如果仍然没有找到目标碎片，尝试通过位置计算找到最近的碎片
+                if (!targetPiece) {
+                    // 获取容器的边界信息
+                    const containerRect = this.puzzleContainer.getBoundingClientRect();
+                    
+                    // 转换为容器内坐标
+                    const containerX = x - containerRect.left;
+                    const containerY = y - containerRect.top;
+                    
+                    // 计算触摸点所在的网格位置
+                    const gridCol = Math.floor(containerX / this.pieceWidth);
+                    const gridRow = Math.floor(containerY / this.pieceHeight);
+                    
+                    // 确保网格位置在有效范围内
+                    const totalCols = this.difficultyConfig[this.currentDifficulty].cols;
+                    const totalRows = this.difficultyConfig[this.currentDifficulty].rows;
+                    
+                    if (gridCol >= 0 && gridCol < totalCols && gridRow >= 0 && gridRow < totalRows) {
+                        // 计算该网格位置对应的索引
+                        const gridIndex = gridRow * totalCols + gridCol;
+                        
+                        // 如果索引在范围内，查找对应的碎片
+                        if (gridIndex >= 0 && gridIndex < this.pieces.length) {
+                            targetPiece = this.pieces.find(piece => 
+                                parseInt(piece.dataset.index) === this.currentOrder[gridIndex]
+                            );
+                        }
+                    }
+                }
+                
+                // 如果找到目标碎片且不是拖拽的碎片本身，交换位置
+                if (targetPiece && targetPiece !== this.draggedPiece) {
+                    // 获取当前拖拽的碎片和目标碎片的数据索引
+                    const draggedDataIndex = parseInt(this.draggedPiece.dataset.index);
+                    const targetDataIndex = parseInt(targetPiece.dataset.index);
+                    
+                    // 在currentOrder数组中找到对应的索引
+                    const draggedIndexInOrder = this.currentOrder.indexOf(draggedDataIndex);
+                    const targetIndexInOrder = this.currentOrder.indexOf(targetDataIndex);
+                    
+                    console.log('Touch drag completed. Swapping pieces:');
+                    console.log('  Dragged piece:', draggedDataIndex, 'at position', this.originalPosition);
+                    console.log('  Target piece:', targetDataIndex, 'at position', {left: targetPiece.style.left, top: targetPiece.style.top});
+                    console.log('  currentOrder before swap:', this.currentOrder);
+                    
+                    // 获取targetPiece的当前位置
+                    const targetComputedStyle = getComputedStyle(targetPiece);
+                    const targetPosition = {
+                        left: targetComputedStyle.left,
+                        top: targetComputedStyle.top
+                    };
+                    
+                    // 将draggedPiece移动到targetPiece的位置
+                    this.draggedPiece.style.left = targetPosition.left;
+                    this.draggedPiece.style.top = targetPosition.top;
+                    
+                    // 将targetPiece移动到draggedPiece的原始位置
+                    targetPiece.style.left = this.originalPosition.left;
+                    targetPiece.style.top = this.originalPosition.top;
+                    
+                    // 交换dataset.index
+                    const tempIndex = this.draggedPiece.dataset.index;
+                    this.draggedPiece.dataset.index = targetPiece.dataset.index;
+                    targetPiece.dataset.index = tempIndex;
+                    
+                    // 更新currentOrder数组
+                    const tempOrder = this.currentOrder[draggedIndexInOrder];
+                    this.currentOrder[draggedIndexInOrder] = this.currentOrder[targetIndexInOrder];
+                    this.currentOrder[targetIndexInOrder] = tempOrder;
+                    
+                    console.log('  currentOrder after swap:', this.currentOrder);
+                    
+                    this.playSound('click');
+                    
+                    if (this.checkWin()) {
+                        this.completeGame();
+                    }
+                }
+                
+                // 如果没有交换位置，恢复到原始位置
+                if (!targetPiece) {
+                    this.draggedPiece.style.left = this.originalPosition.left;
+                    this.draggedPiece.style.top = this.originalPosition.top;
+                }
+                
+                this.resetDragState();
+            }
+            
+            resetDragState() {
+                // 清除所有碎片的高亮效果
+                this.pieces.forEach(piece => {
+                    piece.style.outline = '';
+                    piece.style.transform = '';
+                });
+                
+                if (this.draggedPiece) {
+                    // 恢复拖拽前的样式
+                    this.draggedPiece.style.zIndex = '1';
+                    this.draggedPiece.style.cursor = 'grab';
+                    this.draggedPiece.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+                    this.draggedPiece.style.transform = '';
+                    this.draggedPiece.style.boxShadow = '';
+                    
+                    // 确保恢复后尺寸仍然固定
+                    this.draggedPiece.style.width = `${Math.round(this.pieceWidth)}px`;
+                    this.draggedPiece.style.height = `${Math.round(this.pieceHeight)}px`;
+                }
+                
+                // 重置拖拽状态
+                this.isDragging = false;
+                this.draggedPiece = null;
+            }
+            
+            // 触屏事件处理函数
+            handleTouchStart(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                console.log('Touch start event:', e);
+                
+                // 获取正确的目标元素（拼图碎片）
+                const target = e.target.closest('.puzzle-piece');
+                if (!target) {
+                    console.log('No puzzle piece found for touch start');
+                    return;
+                }
+                
+                console.log('Touch started on piece:', target.dataset.index);
+                
+                // 转换为鼠标事件格式
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    target: target,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                // 调用鼠标按下处理函数
+                this.handleMouseDown(mouseEvent);
+            }
+            
+            handleTouchMove(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                // 确保正在拖拽状态
+                if (!this.isDragging || !this.draggedPiece) return;
+                
+                // 转换为鼠标事件格式
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    target: this.draggedPiece,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                // 调用鼠标移动处理函数
+                this.handleMouseMove(mouseEvent);
+            }
+            
+            handleTouchEnd(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                // 确保正在拖拽状态
+                if (!this.isDragging || !this.draggedPiece) return;
+                
+                // 获取触摸结束的位置
+                const touch = e.changedTouches[0];
+                
+                // 转换为鼠标事件格式，确保坐标处理一致性
+                const mouseEvent = new MouseEvent('mouseup', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    target: this.draggedPiece,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                // 调用鼠标释放处理函数，保持与鼠标事件处理一致的流程
+                this.handleMouseUp(mouseEvent);
+            }
+            
+            handleTouchCancel(e) {
+                // 阻止默认的触摸行为
+                e.preventDefault();
+                
+                // 在触摸被取消时重置拖拽状态
+                if (this.isDragging && this.draggedPiece) {
+                    // 恢复拖拽碎片的原始位置
+                    this.draggedPiece.style.left = this.originalPosition.left;
+                    this.draggedPiece.style.top = this.originalPosition.top;
+                    
+                    // 重置拖拽状态
+                    this.resetDragState();
+                }
+            }
+            
+            swapPiecesByDataIndex(draggedDataIndex, targetDataIndex, draggedIndexInOrder, targetIndexInOrder) {
+                // 找到对应的DOM元素
+                const draggedPiece = this.pieces.find(piece => parseInt(piece.dataset.index) === draggedDataIndex);
+                const targetPiece = this.pieces.find(piece => parseInt(piece.dataset.index) === targetDataIndex);
+                
+                if (!draggedPiece || !targetPiece) return;
+                
+                // 交换dataset.index
+                const tempIndex = draggedPiece.dataset.index;
+                draggedPiece.dataset.index = targetPiece.dataset.index;
+                targetPiece.dataset.index = tempIndex;
+                
+                // 交换currentOrder中的位置
+                const tempOrder = this.currentOrder[draggedIndexInOrder];
+                this.currentOrder[draggedIndexInOrder] = this.currentOrder[targetIndexInOrder];
+                this.currentOrder[targetIndexInOrder] = tempOrder;
+                
+                // 在绝对定位布局中，我们使用left和top来控制位置
+                // 首先获取两个元素当前的位置
+                const draggedLeft = getComputedStyle(draggedPiece).left;
+                const draggedTop = getComputedStyle(draggedPiece).top;
+                const targetLeft = getComputedStyle(targetPiece).left;
+                const targetTop = getComputedStyle(targetPiece).top;
+                
+                // 交换它们的位置
+                draggedPiece.style.left = targetLeft;
+                draggedPiece.style.top = targetTop;
+                targetPiece.style.left = draggedLeft;
+                targetPiece.style.top = draggedTop;
+            }
+            
+            // 保留原函数用于兼容旧代码
+            swapPieces(index1, index2) {
+                const piece1 = this.pieces[index1];
+                const piece2 = this.pieces[index2];
+                
+                // 交换dataset.index
+                const tempIndex = piece1.dataset.index;
+                piece1.dataset.index = piece2.dataset.index;
+                piece2.dataset.index = tempIndex;
+                
+                // 交换currentOrder中的位置
+                const tempOrder = this.currentOrder[index1];
+                this.currentOrder[index1] = this.currentOrder[index2];
+                this.currentOrder[index2] = tempOrder;
+                
+                // 在绝对定位布局中，我们使用left和top来控制位置
+                // 首先获取两个元素当前的位置
+                const piece1Left = getComputedStyle(piece1).left;
+                const piece1Top = getComputedStyle(piece1).top;
+                const piece2Left = getComputedStyle(piece2).left;
+                const piece2Top = getComputedStyle(piece2).top;
+                
+                // 交换它们的位置
+                piece1.style.left = piece2Left;
+                piece1.style.top = piece2Top;
+                piece2.style.left = piece1Left;
+                piece2.style.top = piece1Top;
+            }
+            
+            checkWin() {
+                return JSON.stringify(this.currentOrder) === JSON.stringify(this.correctOrder);
+            }
+            
+            completeGame() {
+                this.isGameCompleted = true;
+                this.isGameStarted = false;
+                
+                if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
+                
+                // 更新文本内容为"恭喜你用时多少过关了"
+                this.finalTime.textContent = translate('finalTime', this.timeDisplay.textContent);
+                this.congratulations.classList.add('show');
+                
+                // 创建鲜花和烟花效果
+                this.createFlowers();
+                this.createFireworks();
+                this.playSound('success');
+                
+                // 2秒后自动关闭恭喜界面，回到游戏界面
+                setTimeout(() => {
+                    this.congratulations.classList.remove('show');
+                    // 清空鲜花和烟花
+                    this.flowers.innerHTML = '';
+                    this.fireworks.innerHTML = '';
+                    // 恢复游戏状态，可以继续游玩
+                    this.isGameCompleted = false;
+                    // 显示提示信息
+                    this.showMessage(translate('continueChallenge'), true);
+                }, 2000);
+            }
+            
+            createFlowers() {
+                this.flowers.innerHTML = '';
+                
+                for (let i = 0; i < 50; i++) {
+                    const flower = document.createElement('div');
+                    flower.className = 'flower';
+                    flower.style.left = `${Math.random() * 100}%`;
+                    flower.style.top = `${Math.random() * 100}%`;
+                    flower.style.animationDelay = `${Math.random() * 3}s`;
+                    flower.style.animationDuration = `${2 + Math.random() * 2}s`;
+                    this.flowers.appendChild(flower);
+                }
+            }
+            
+            createFireworks() {
+                this.fireworks.innerHTML = '';
+                
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const firework = document.createElement('div');
+                        firework.className = 'firework';
+                        firework.style.left = `${Math.random() * 100}%`;
+                        firework.style.top = `${Math.random() * 100}%`;
+                        firework.style.animationDelay = `${Math.random() * 0.5}s`;
+                        
+                        // 随机颜色
+                        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                        firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        this.fireworks.appendChild(firework);
+                        
+                        // 动画结束后移除元素
+                        setTimeout(() => {
+                            firework.remove();
+                        }, 1500);
+                    }, i * 100);
+                }
+            }
+            
+            playSound(type) {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    if (type === 'click') {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.value = 800;
+                        oscillator.type = 'square';
+                        
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.1);
+                    } else if (type === 'success') {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                        oscillator.frequency.linearRampToValueAtTime(800, audioContext.currentTime + 0.5);
+                        oscillator.type = 'sine';
+                        
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.5);
+                    } else if (type === 'alert') {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        // 双音提示音
+                        oscillator.frequency.setValueAtTime(500, audioContext.currentTime);
+                        oscillator.frequency.linearRampToValueAtTime(300, audioContext.currentTime + 0.3);
+                        oscillator.type = 'square';
+                        
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.3);
+                    }
+                } catch (e) {
+                    console.log('Audio playback failed:', e);
+                }
+            }
+            
+            playButtonSound(e) {
+                // 移除对默认行为的阻止，确保按钮点击能正常触发
+                // if (e.target.id !== 'upload-image') {
+                //     e.preventDefault();
+                // }
+                console.log('Button clicked:', e.target.id);
+                this.playSound('click');
+            }
+            
+            showMessage(text, speak = false) {
+                this.message.textContent = text;
+                this.message.classList.add('show');
+                
+                setTimeout(() => {
+                    this.message.classList.remove('show');
+                }, 3000);
+                
+                if (speak && 'speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'zh-CN';
+                    window.speechSynthesis.speak(utterance);
+                }
+            }
+            
+            calculateOverlap(rect1, rect2) {
+                const x1 = Math.max(rect1.left, rect2.left);
+                const y1 = Math.max(rect1.top, rect2.top);
+                const x2 = Math.min(rect1.right, rect2.right);
+                const y2 = Math.min(rect1.bottom, rect2.bottom);
+                
+                if (x2 <= x1 || y2 <= y1) return 0;
+                
+                return (x2 - x1) * (y2 - y1);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new PuzzleGame();
+        });
+    </script>
+</body>
+</html>
